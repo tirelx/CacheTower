@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace CacheTower
@@ -14,6 +15,19 @@ namespace CacheTower
 		/// <param name="cacheStack">The cache stack you want to register.</param>
 		void Register(ICacheStack cacheStack);
 	}
+	
+	/// <summary>
+	/// An <see cref="ICacheExtension"/> provides a method of extending the behaviour of Cache Tower.
+	/// </summary>
+	public interface IHashTableCacheExtension
+	{
+		/// <summary>
+		/// Registers the provided <paramref name="hashTableCacheStack"/> to the current cache extension.
+		/// </summary>
+		/// <param name="hashTableCacheStack">The cache stack you want to register.</param>
+		void Register(IHashTableCacheStack hashTableCacheStack);
+	}
+
 
 	/// <remarks>
 	/// An <see cref="ICacheChangeExtension"/> exposes events into the inner workings of a cache stack.
@@ -28,7 +42,8 @@ namespace CacheTower
 		/// <param name="expiry">The new expiry date for the cache entry.</param>
 		/// <param name="updateType">The type of cache update that has occurred.</param>
 		/// <returns></returns>
-		ValueTask OnCacheUpdateAsync(string cacheKey, DateTime expiry, CacheUpdateType updateType);
+		ValueTask OnCacheUpdateAsync(string cacheKey, DateTime? expiry, CacheUpdateType updateType);
+		
 		/// <summary>
 		/// Triggers after a cache entry has been evicted.
 		/// </summary>
@@ -41,6 +56,72 @@ namespace CacheTower
 		/// <returns></returns>
 		ValueTask OnCacheFlushAsync();
 	}
+	
+	/// <remarks>
+	/// An <see cref="IHashTableCacheChangeExtension"/> exposes events into the inner workings of a cache stack.
+	/// </remarks>
+	/// <inheritdoc/>
+	public interface IHashTableCacheChangeExtension : IHashTableCacheExtension
+	{
+		/// <summary>
+		/// Triggers after a cache entry has been updated.
+		/// </summary>
+		/// <param name="cacheKey">The cache key for the entry that was updated.</param>
+		/// <param name="expiry">The new expiry date for the cache entry.</param>
+		/// <param name="updateType">The type of cache update that has occurred.</param>
+		/// <returns></returns>
+		ValueTask OnCacheUpdateAsync(string cacheKey, DateTime? expiry, CacheUpdateType updateType);
+
+		/// <summary>
+		/// Triggers after a cache entry has been updated.
+		/// </summary>
+		/// <param name="hashTableKey">The cache key for the entry that was updated.</param>
+		/// <param name="elementKey">The element key in hash table</param>
+		/// <param name="expiry">The new expiry date for the cache entry.</param>
+		/// <param name="updateType">The type of cache update that has occurred.</param>
+		/// <returns></returns>
+		ValueTask OnHashUpdateElementAsync(string hashTableKey, string elementKey, DateTime? expiry, CacheUpdateType updateType);
+		
+		/// <summary>
+		/// Triggers after a cache entry has been updated.
+		/// </summary>
+		/// <param name="hashTableKey">The cache key for the entry that was updated.</param>
+		/// <param name="elementKeys">The element key in hash table</param>
+		/// <param name="expiry">The new expiry date for the cache entry.</param>
+		/// <param name="updateType">The type of cache update that has occurred.</param>
+		/// <returns></returns>
+		ValueTask OnHashSubsetUpdateAsync(string hashTableKey, ICollection<string> elementKeys, DateTime? expiry, CacheUpdateType updateType);
+		
+		/// <summary>
+		/// Triggers after a cache entry has been evicted.
+		/// </summary>
+		/// <param name="cacheKey">The cache key for the entry that was evicted.</param>
+		/// <returns></returns>
+		ValueTask OnCacheEvictionAsync(string cacheKey);
+
+		/// <summary>
+		/// Triggers after a cache entry has been evicted.
+		/// </summary>
+		/// <param name="hashTableKey">The cache key for the entry that was evicted.</param>
+		/// <param name="elementKey">The element key in hash table</param>
+		/// <returns></returns>
+		ValueTask OnHashElementEvictionAsync(string hashTableKey, string elementKey);
+		
+		/// <summary>
+		/// Triggers after a cache entry has been evicted.
+		/// </summary>
+		/// <param name="hashTableKey">The cache key for the entry that was evicted.</param>
+		/// <param name="elementKeys">The element key in hash table</param>
+		/// <returns></returns>
+		ValueTask OnHashSubsetEvictionAsync(string hashTableKey, ICollection<string> elementKeys);
+		
+		/// <summary>
+		/// Triggers after the cache stack is flushed.
+		/// </summary>
+		/// <returns></returns>
+		ValueTask OnCacheFlushAsync();
+	}
+	
 	/// <summary>
 	/// Describes the type of cache update that the cache stack experienced.
 	/// </summary>

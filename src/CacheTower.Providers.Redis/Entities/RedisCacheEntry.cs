@@ -16,7 +16,7 @@ namespace CacheTower.Providers.Redis.Entities
 		/// The expiry date of the cache entry.
 		/// </summary>
 		[ProtoMember(1)]
-		public DateTime Expiry { get; set; }
+		public DateTime? Expiry { get; set; }
 		/// <summary>
 		/// The cached value itself.
 		/// </summary>

@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace CacheTower.Extensions
 {
-	internal class ExtensionContainer : ICacheExtension, ICacheChangeExtension, ICacheRefreshCallSiteWrapperExtension, IAsyncDisposable
+	internal class ExtensionContainer : ICacheChangeExtension, ICacheRefreshCallSiteWrapperExtension, IAsyncDisposable
 	{
 		private bool Disposed;
 
@@ -17,7 +17,7 @@ namespace CacheTower.Extensions
 
 		public ExtensionContainer(ICacheExtension[] extensions)
 		{
-			if (extensions != null && extensions.Length > 0)
+			if (extensions is { Length: > 0 })
 			{
 				var cacheChangeExtensions = new List<ICacheChangeExtension>();
 
@@ -70,7 +70,7 @@ namespace CacheTower.Extensions
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public async ValueTask OnCacheUpdateAsync(string cacheKey, DateTime expiry, CacheUpdateType cacheUpdateType)
+		public async ValueTask OnCacheUpdateAsync(string cacheKey, DateTime? expiry, CacheUpdateType cacheUpdateType)
 		{
 			if (HasCacheChangeExtensions)
 			{

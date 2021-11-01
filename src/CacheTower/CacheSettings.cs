@@ -10,7 +10,7 @@ namespace CacheTower
 		/// <summary>
 		/// How long till a cache entry is considered expired.
 		/// </summary>
-		public TimeSpan TimeToLive { get; }
+		public TimeSpan? TimeToLive { get; }
 		/// <summary>
 		/// How long till a cache entry is considered stale.
 		/// </summary>
@@ -51,7 +51,7 @@ namespace CacheTower
 		/// You will need to decide on the appropriate value based on your own usage.
 		/// </para>
 		/// </param>
-		public CacheSettings(TimeSpan timeToLive, TimeSpan staleAfter)
+		public CacheSettings(TimeSpan? timeToLive, TimeSpan? staleAfter)
 		{
 			TimeToLive = timeToLive;
 			StaleAfter = staleAfter;

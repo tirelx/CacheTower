@@ -18,11 +18,8 @@ namespace CacheTower.Providers.Redis
 	/// </para>
 	/// </remarks>
 	/// <inheritdoc cref="ICacheLayer"/>
-	public class RedisCacheLayer : ICacheLayer
+	public class RedisCacheLayer : BaseRedisLayer, ICacheLayer
 	{
-		private IConnectionMultiplexer Connection { get; }
-		private IDatabaseAsync Database { get; }
-		private int DatabaseIndex { get; }
 
 		/// <summary>
 		/// Creates a new instance of <see cref="RedisCacheLayer"/> with the given <paramref name="connection"/> and <paramref name="databaseIndex"/>.
@@ -32,63 +29,25 @@ namespace CacheTower.Providers.Redis
 		/// The database index to use for Redis.
 		/// If not specified, uses the default database as configured on the <paramref name="connection"/>.
 		/// </param>
-		public RedisCacheLayer(IConnectionMultiplexer connection, int databaseIndex = -1)
+		public RedisCacheLayer(IConnectionMultiplexer connection, int databaseIndex = -1) : base(connection, databaseIndex)
 		{
-			Connection = connection;
-			Database = connection.GetDatabase(databaseIndex);
-			DatabaseIndex = databaseIndex;
 		}
 
 		/// <inheritdoc/>
-		/// <remarks>
-		/// Cleanup is unnecessary for the <see cref="RedisCacheLayer"/> as Redis handles removing expired keys automatically.
-		/// </remarks>
-		public ValueTask CleanupAsync()
-		{
-			//Noop as Redis handles this directly
-			return new ValueTask();
-		}
-
-		/// <inheritdoc/>
-		public async ValueTask EvictAsync(string cacheKey)
+		public virtual async ValueTask EvictAsync(string cacheKey)
 		{
 			await Database.KeyDeleteAsync(cacheKey);
-		}
-
-		/// <inheritdoc/>
-		/// <remarks>
-		/// Flushing the <see cref="RedisCacheLayer"/> performs a database flush in Redis.
-		/// Every key associated to the database index will be removed.
-		/// </remarks>
-		public async ValueTask FlushAsync()
-		{
-			var redisEndpoints = Connection.GetEndPoints();
-			foreach (var endpoint in redisEndpoints)
-			{
-				await Connection.GetServer(endpoint).FlushDatabaseAsync(DatabaseIndex);
-			}
 		}
 
 		/// <inheritdoc/>
 		public async ValueTask<CacheEntry<T>?> GetAsync<T>(string cacheKey)
 		{
 			var redisValue = await Database.StringGetAsync(cacheKey);
-			if (redisValue != RedisValue.Null)
-			{
-				using (var stream = new MemoryStream(redisValue))
-				{
-					var redisCacheEntry = Serializer.Deserialize<RedisCacheEntry<T>>(stream);
-					return new CacheEntry<T>(redisCacheEntry.Value, redisCacheEntry.Expiry);
-				}
-			}
-
-			return default;
-		}
-
-		/// <inheritdoc/>
-		public ValueTask<bool> IsAvailableAsync(string cacheKey)
-		{
-			return new ValueTask<bool>(Connection.IsConnected);
+			if (redisValue == RedisValue.Null) return default;
+			
+			using var stream = new MemoryStream(redisValue);
+			var redisCacheEntry = Serializer.Deserialize<RedisCacheEntry<T>>(stream);
+			return new CacheEntry<T>(redisCacheEntry.Value, redisCacheEntry.Expiry);
 		}
 
 		/// <inheritdoc/>
@@ -106,14 +65,12 @@ namespace CacheTower.Providers.Redis
 				Value = cacheEntry.Value!
 			};
 
-			using (var stream = new MemoryStream())
-			{
-				Serializer.Serialize(stream, redisCacheEntry);
-				stream.Seek(0, SeekOrigin.Begin);
+			using var stream = new MemoryStream();
+			Serializer.Serialize(stream, redisCacheEntry);
+			stream.Seek(0, SeekOrigin.Begin);
 
-				var redisValue = RedisValue.CreateFrom(stream);
-				await Database.StringSetAsync(cacheKey, redisValue, expiryOffset);
-			}
+			var redisValue = RedisValue.CreateFrom(stream);
+			await Database.StringSetAsync(cacheKey, redisValue, expiryOffset);
 		}
 	}
 }

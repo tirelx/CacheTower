@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using StackExchange.Redis;
@@ -48,7 +46,7 @@ namespace CacheTower.Extensions.Redis
 
 			LockedOnKeyRefresh = new ConcurrentDictionary<string, TaskCompletionSource<bool>>(StringComparer.Ordinal);
 
-			Subscriber.Subscribe(options.RedisChannel, (channel, value) => UnlockWaitingTasks(value));
+			Subscriber.Subscribe(options.RedisChannel, (_, value) => UnlockWaitingTasks(value));
 		}
 
 		/// <inheritdoc/>
@@ -99,7 +97,7 @@ namespace CacheTower.Extensions.Redis
 					else
 					{
 						var cts = new CancellationTokenSource(Options.LockTimeout);
-						cts.Token.Register(tcs => ((TaskCompletionSource<bool>)tcs).TrySetCanceled(), tcs, useSynchronizationContext: false);
+						cts.Token.Register(o => ((TaskCompletionSource<bool>)o).TrySetCanceled(), tcs, useSynchronizationContext: false);
 					}
 
 					return tcs;

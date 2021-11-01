@@ -16,6 +16,6 @@ namespace CacheTower.Providers.FileSystem.Protobuf
 		public string? FileName { get; set; }
 		/// <inheritdoc/>
 		[ProtoMember(2)]
-		public DateTime Expiry { get; set; }
+		public DateTime? Expiry { get; set; }
 	}
 }

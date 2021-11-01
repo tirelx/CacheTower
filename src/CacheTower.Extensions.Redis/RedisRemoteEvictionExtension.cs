@@ -9,17 +9,8 @@ namespace CacheTower.Extensions.Redis
 	/// The <see cref="RedisRemoteEvictionExtension"/> broadcasts cache updates, evictions and flushes to Redis to allow for remote eviction of old cache data.
 	/// When one of these events is received, it will perform that action locally to the configured cache layers.
 	/// </summary>
-	public class RedisRemoteEvictionExtension : ICacheChangeExtension
+	public class RedisRemoteEvictionExtension : BaseRedisEvictionExtension, ICacheChangeExtension
 	{
-		private ISubscriber Subscriber { get; }
-		private string FlushChannel { get; }
-		private string EvictionChannel { get; }
-
-		private bool IsRegistered { get; set; }
-
-		private readonly object LockObj = new object();
-		private HashSet<string> FlaggedEvictions { get; }
-		private bool HasFlushTriggered { get; set; }
 		private ICacheLayer[] EvictFromLayers { get; }
 
 		/// <summary>
@@ -28,69 +19,12 @@ namespace CacheTower.Extensions.Redis
 		/// <param name="connection">The primary connection to the Redis instance where the messages will be broadcast and received through.</param>
 		/// <param name="evictFromLayers">The cache layers to either evict or flush when a message is received from Redis.</param>
 		/// <param name="channelPrefix">The channel prefix to use for the Redis communication.</param>
-		public RedisRemoteEvictionExtension(IConnectionMultiplexer connection, ICacheLayer[] evictFromLayers, string channelPrefix = "CacheTower")
+		public RedisRemoteEvictionExtension(IConnectionMultiplexer connection, ICacheLayer[] evictFromLayers,
+			string channelPrefix = "CacheTower") : base(connection, channelPrefix)
 		{
-			if (connection == null)
-			{
-				throw new ArgumentNullException(nameof(connection));
-			}
-
-			if (channelPrefix == null)
-			{
-				throw new ArgumentNullException(nameof(channelPrefix));
-			}
-
-			Subscriber = connection.GetSubscriber();
-			FlushChannel = $"{channelPrefix}.RemoteFlush";
-			EvictionChannel = $"{channelPrefix}.RemoteEviction";
-			FlaggedEvictions = new HashSet<string>(StringComparer.Ordinal);
 			EvictFromLayers = evictFromLayers ?? throw new ArgumentNullException(nameof(evictFromLayers));
 		}
 
-		/// <remarks>
-		/// This will broadcast to Redis that the cache entry belonging to <paramref name="cacheKey"/> is now out-of-date and should be evicted.
-		/// </remarks>
-		/// <inheritdoc/>
-		public ValueTask OnCacheUpdateAsync(string cacheKey, DateTime expiry, CacheUpdateType cacheUpdateType)
-		{
-			if (cacheUpdateType == CacheUpdateType.AddOrUpdateEntry)
-			{
-				return FlagEvictionAsync(cacheKey);
-			}
-			return default;
-		}
-		/// <remarks>
-		/// This will broadcast to Redis that the cache entry belonging to <paramref name="cacheKey"/> is to be evicted.
-		/// </remarks>
-		/// <inheritdoc/>
-		public ValueTask OnCacheEvictionAsync(string cacheKey)
-		{
-			return FlagEvictionAsync(cacheKey);
-		}
-
-		private async ValueTask FlagEvictionAsync(string cacheKey)
-		{
-			lock (LockObj)
-			{
-				FlaggedEvictions.Add(cacheKey);
-			}
-
-			await Subscriber.PublishAsync(EvictionChannel, cacheKey, CommandFlags.FireAndForget);
-		}
-
-		/// <remarks>
-		/// This will broadcast to Redis that the cache should be flushed.
-		/// </remarks>
-		/// <inheritdoc/>
-		public async ValueTask OnCacheFlushAsync()
-		{
-			lock (LockObj)
-			{
-				HasFlushTriggered = true;
-			}
-
-			await Subscriber.PublishAsync(FlushChannel, RedisValue.EmptyString, CommandFlags.FireAndForget);
-		}
 
 		/// <inheritdoc/>
 		public void Register(ICacheStack cacheStack)
@@ -106,7 +40,7 @@ namespace CacheTower.Extensions.Redis
 				{
 					string cacheKey = channelMessage.Message;
 
-					var shouldEvictLocally = false;
+					bool shouldEvictLocally;
 					lock (LockObj)
 					{
 						shouldEvictLocally = FlaggedEvictions.Remove(cacheKey) == false;
@@ -122,9 +56,9 @@ namespace CacheTower.Extensions.Redis
 				});
 
 			Subscriber.Subscribe(FlushChannel)
-				.OnMessage(async (channelMessage) =>
+				.OnMessage(async (_) =>
 				{
-					var shouldFlushLocally = false;
+					bool shouldFlushLocally;
 					lock (LockObj)
 					{
 						shouldFlushLocally = !HasFlushTriggered;

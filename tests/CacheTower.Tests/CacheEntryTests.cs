@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace CacheTower.Tests
@@ -15,7 +11,7 @@ namespace CacheTower.Tests
 		{
 			var expiry = DateTime.UtcNow;
 			var entry = new CacheEntry<int>(0, expiry);
-			expiry = entry.Expiry;
+			expiry = entry.Expiry!.Value;
 
 			var staleDate = entry.GetStaleDate(new CacheSettings(TimeSpan.FromDays(3), TimeSpan.FromDays(2)));
 			Assert.AreEqual(expiry.AddDays(-1), staleDate);
@@ -26,7 +22,7 @@ namespace CacheTower.Tests
 		{
 			var expiry = DateTime.UtcNow;
 			var entry = new CacheEntry<int>(0, expiry);
-			expiry = entry.Expiry;
+			expiry = entry.Expiry!.Value;
 
 			var staleDate = entry.GetStaleDate(new CacheSettings(TimeSpan.FromDays(3)));
 			Assert.AreEqual(expiry, staleDate);

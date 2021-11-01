@@ -16,6 +16,6 @@ namespace CacheTower.Providers.FileSystem
 		/// <summary>
 		/// The expiry date of the cached value.
 		/// </summary>
-		DateTime Expiry { get; set; }
+		DateTime? Expiry { get; set; } 
 	}
 }

@@ -10,6 +10,6 @@ namespace CacheTower.Providers.FileSystem
 		/// <inheritdoc/>
 		public string? FileName { get; set; }
 		/// <inheritdoc/>
-		public DateTime Expiry { get; set; }
+		public DateTime? Expiry { get; set; }
 	}
 }

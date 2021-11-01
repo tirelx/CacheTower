@@ -30,6 +30,18 @@ namespace Microsoft.Extensions.DependencyInjection
 		{
 			services.AddSingleton<ICacheStack>(sp => new CacheStack(layers, extensions));
 		}
+		
+		/// <summary>
+		/// Adds a <see cref="HashTableCacheStack"/> singleton to the specified <see cref="IServiceCollection"/> with the specified layers and extensions.
+		/// </summary>
+		/// <param name="services">The services collection to add the dependencies to.</param>
+		/// <param name="layers">The cache layers to use.</param>
+		/// <param name="extensions">The cache extensions to use.</param>
+		public static void AddHashTableCacheStack(this IServiceCollection services, IHashTableCacheLayer[] layers, IHashTableCacheExtension[] extensions)
+		{
+			services.AddSingleton<IHashTableCacheStack>(sp => new HashTableCacheStack(layers, extensions));
+		}
+
 
 		/// <summary>
 		/// Adds a <see cref="CacheStack"/> singleton to the specified <see cref="IServiceCollection"/> with the specified layers and extensions.

@@ -10,7 +10,7 @@ namespace CacheTower
 	/// <summary>
 	/// A <see cref="CacheStack"/> is the backbone of caching for Cache Tower. This manages coordination between the various cache layers, manages the cache extensions and handles background refreshing.
 	/// </summary>
-	public class CacheStack : ICacheStack, IFlushableCacheStack, IAsyncDisposable
+	public class CacheStack : IFlushableCacheStack, IAsyncDisposable
 	{
 		private bool Disposed;
 
@@ -98,7 +98,7 @@ namespace CacheTower
 		}
 
 		/// <inheritdoc/>
-		public async ValueTask<CacheEntry<T>> SetAsync<T>(string cacheKey, T value, TimeSpan timeToLive)
+		public async ValueTask<CacheEntry<T>> SetAsync<T>(string cacheKey, T value, TimeSpan? timeToLive = null)
 		{
 			ThrowIfDisposed();
 
@@ -203,7 +203,7 @@ namespace CacheTower
 
 			var currentTime = DateTimeProvider.Now;
 			var cacheEntryPoint = await GetWithLayerIndexAsync<T>(cacheKey);
-			if (cacheEntryPoint != default && cacheEntryPoint.CacheEntry.Expiry > currentTime)
+			if (cacheEntryPoint != default && (!cacheEntryPoint.CacheEntry.Expiry.HasValue || cacheEntryPoint.CacheEntry.Expiry > currentTime))
 			{
 				var cacheEntry = cacheEntryPoint.CacheEntry;
 				if (settings.StaleAfter.HasValue && cacheEntry.GetStaleDate(settings) < currentTime)
@@ -230,7 +230,7 @@ namespace CacheTower
 		{
 			ThrowIfDisposed();
 
-			var hasLock = false;
+			bool hasLock;
 			lock (WaitingKeyRefresh)
 			{
 #if NETSTANDARD2_0
@@ -268,7 +268,7 @@ namespace CacheTower
 		{
 			ThrowIfDisposed();
 
-			var hasLock = false;
+			bool hasLock;
 			lock (WaitingKeyRefresh)
 			{
 #if NETSTANDARD2_0

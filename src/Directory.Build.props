@@ -9,6 +9,7 @@
     <PackageIcon>icon.png</PackageIcon>
     <PackageProjectUrl>https://github.com/TurnerSoftware/CacheTower</PackageProjectUrl>
     <PackageBaseTags>caching;cache;multi-layer</PackageBaseTags>
+    <NoWarn>CS1574</NoWarn>
 
     <!-- SourceLink Support -->
     <PublishRepositoryUrl>true</PublishRepositoryUrl>

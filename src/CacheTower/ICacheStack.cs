@@ -34,7 +34,7 @@ namespace CacheTower
 		/// <param name="value">The value to store in the cache.</param>
 		/// <param name="timeToLive">How long till the entry is expired.</param>
 		/// <returns></returns>
-		ValueTask<CacheEntry<T>> SetAsync<T>(string cacheKey, T value, TimeSpan timeToLive);
+		ValueTask<CacheEntry<T>> SetAsync<T>(string cacheKey, T value, TimeSpan? timeToLive = null);
 		/// <summary>
 		/// Sets the <paramref name="cacheEntry"/> to a specific <paramref name="cacheKey"/> across all cache layers.
 		/// </summary>

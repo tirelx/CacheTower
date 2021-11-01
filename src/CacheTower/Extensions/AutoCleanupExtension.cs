@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -51,6 +49,20 @@ namespace CacheTower.Extensions
 			BackgroundTask = BackgroundCleanup(cacheStack);
 		}
 
+		/// <summary>
+		/// Registers the provided <paramref name="cacheStack"/> to the current cache extension.
+		/// </summary>
+		/// <param name="cacheStack">The cache stack you want to register.</param>
+		public void Register(IHashTableCacheStack cacheStack)
+		{
+			if (BackgroundTask is not null)
+			{
+				throw new InvalidOperationException($"{nameof(AutoCleanupExtension)} can only be registered to one {nameof(ICacheStack)}");
+			}
+
+			BackgroundTask = BackgroundCleanup(cacheStack);
+		}
+
 		private async Task BackgroundCleanup(ICacheStack cacheStack)
 		{
 			try
@@ -63,7 +75,24 @@ namespace CacheTower.Extensions
 					await cacheStack.CleanupAsync();
 				}
 			}
-			catch (Exception ex) when (ex is TaskCanceledException || ex is OperationCanceledException)
+			catch (Exception ex) when (ex is TaskCanceledException or OperationCanceledException)
+			{
+			}
+		}
+		
+		private async Task BackgroundCleanup(IHashTableCacheStack cacheStack)
+		{
+			try
+			{
+				var cancellationToken = TokenSource.Token;
+				while (!cancellationToken.IsCancellationRequested)
+				{
+					await Task.Delay(Frequency, cancellationToken);
+					cancellationToken.ThrowIfCancellationRequested();
+					await cacheStack.CleanupAsync();
+				}
+			}
+			catch (Exception ex) when (ex is TaskCanceledException or OperationCanceledException)
 			{
 			}
 		}
